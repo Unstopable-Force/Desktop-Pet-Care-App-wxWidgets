@@ -3,15 +3,17 @@
 #include <sstream>
 #include <wx/wx.h>
 
-// Функція для збереження тварин в файл
-void AnimalRepository::SaveAnimalsToFile(std::vector<Animal>& animals, const std::string& fileName)
+// Funkcja zapisująca dane zwierząt do pliku
+void AnimalRepository::SaveAnimalsToFile(const std::vector<Animal>& animals, const std::string& fileName)
 {
-    ofstream file(fileName);  // Відкриваємо файл для запису
+    std::ofstream file(fileName);  // Otwieramy plik do zapisu
+
     if (!file.is_open()) {
-        wxMessageBox(wxString::FromUTF8("Не вдалося відкрити файл для запису."), wxString::FromUTF8("Помилка"), wxICON_ERROR); //Повідомлення
+        wxMessageBox("Failed to open file for writing.", "Error", wxICON_ERROR); // Komunikat błędu
         return;
     }
-    // Записуємо тварин у файл
+
+    // Zapisujemy dane zwierząt do pliku
     for (const auto& animal : animals) {
         file << animal.name << "|"
             << animal.kind << "|"
@@ -20,20 +22,24 @@ void AnimalRepository::SaveAnimalsToFile(std::vector<Animal>& animals, const std
             << animal.days << "|"
             << animal.price << "\n";
     }
+
     file.close();
 }
 
-// Функція для завантаження тварин з файлу
+// Funkcja wczytująca dane zwierząt z pliku
 std::vector<Animal> AnimalRepository::LoadAnimalsFromFile(const std::string& fileName)
 {
     std::vector<Animal> result;
-    ifstream file(fileName);  // Відкриваємо файл для читання
+    std::ifstream file(fileName);  // Otwieramy plik do odczytu
+
     if (!file.is_open())
-        return result;  // Якщо не вдалося відкрити, повертаємо порожній вектор
+        return result;  // Jeśli nie udało się otworzyć, zwracamy pusty wektor
 
     std::string line;
+
     while (getline(file, line)) {
-        stringstream ss(line);  // Розбиваємо рядок на частини
+        std::stringstream ss(line);  // Dzielimy linię na części
+
         Animal animal;
         std::string daysStr, priceStr;
 
@@ -44,9 +50,9 @@ std::vector<Animal> AnimalRepository::LoadAnimalsFromFile(const std::string& fil
             getline(ss, daysStr, '|') &&
             getline(ss, priceStr))
         {
-            animal.days = stoi(daysStr);  // Перетворюємо дні в int
-            animal.price = stod(priceStr);  // Перетворюємо ціну в double
-            result.push_back(animal);  // Додаємо тварину в результат
+            animal.days = stoi(daysStr);     // Konwersja dni na int
+            animal.price = stod(priceStr);   // Konwersja ceny na double
+            result.push_back(animal);        // Dodanie do listy wynikowej
         }
     }
 
