@@ -1,60 +1,61 @@
 ﻿#pragma once
+
 #include "Animal.h"
 #include "Program.h"
 #include "Data.h"
 #include "AnimalRepository.h"
+
 #include <wx/wx.h>
 #include <wx/spinctrl.h>
 #include <fstream>
 
 #pragma execution_character_set("utf-8")
 
-// Klasa głównego okna aplikacji
 class MainFrame : public wxFrame
 {
 public:
-    MainFrame(const wxString& title);  // Konstruktor okna
-
-    std::vector<Animal> animals; // Lista zwierząt
+    MainFrame(const wxString& title);
 
 private:
-    // Obsługa kliknięć przycisków
     void OnButtonAddClicked(wxCommandEvent& evt);
     void OnButtonDeleteClicked(wxCommandEvent& evt);
     void OnButtonChangeClicked(wxCommandEvent& evt);
     void OnButtonCleanClicked(wxCommandEvent& evt);
-
-    // Obsługa zmiany typu zwierzęcia
     void OnKindChanged(wxCommandEvent& evt);
 
-    // Dane aktualnie wprowadzane przez użytkownika
+    // Reads and validates form fields; shows an error dialog on failure.
+    // Returns true only when all fields are valid.
+    bool ReadFormFields(wxString& outName, wxString& outKind,
+        wxString& outAllergy, wxString& outFood, int& outDays);
+
+    wxString FormatAnimalEntry(const Animal& a) const;
+
+    // Data
+    std::vector<Animal> animals;
+
     wxString name;
     wxString kind;
     wxString allergy;
     wxString food;
-    int days;
-    double price;
+    int      days = 1;
+    double   price = 0.0;
 
-    // Dane do UI
-    wxArrayString KindsUI;
-    wxArrayString AllergiesUI;
-    wxArrayString FoodUI;
+    wxArrayString kindsUI;
+    wxArrayString allergiesUI;
+    wxArrayString foodUI;
 
-    // Elementy interfejsu
+    // UI elements
     wxPanel* panel;
-
     wxButton* buttonAdd;
     wxButton* buttonChange;
     wxButton* buttonDelete;
     wxButton* buttonClean;
 
-    // Pola wejściowe
-    wxSpinCtrl* chooseDays;
     wxTextCtrl* chooseName;
     wxChoice* chooseKind;
     wxChoice* chooseAllergy;
     wxChoice* chooseFood;
+    wxSpinCtrl* chooseDays;
 
-    // Lista zwierząt
     wxListBox* listAnimals;
 };

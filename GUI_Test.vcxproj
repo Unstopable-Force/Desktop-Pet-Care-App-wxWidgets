@@ -26,7 +26,6 @@
     <ClInclude Include="Program.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Animal.cpp" />
     <ClCompile Include="AnimalRepository.cpp" />
     <ClCompile Include="Data.cpp" />
     <ClCompile Include="MainFrame.cpp" />

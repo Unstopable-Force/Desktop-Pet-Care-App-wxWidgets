@@ -38,9 +38,6 @@
     <ClCompile Include="Program.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
-    <ClCompile Include="Animal.cpp">
-      <Filter>Исходные файлы</Filter>
-    </ClCompile>
     <ClCompile Include="AnimalRepository.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>

@@ -1,6 +1,5 @@
 ﻿#include "MainFrame.h"
 
-// Konstruktor głównego okna
 MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
 {
     wxFont mainFont(wxFontInfo(wxSize(0, 12)).Light());
@@ -8,231 +7,168 @@ MainFrame::MainFrame(const wxString& title) : wxFrame(nullptr, wxID_ANY, title)
     panel = new wxPanel(this);
     panel->SetFont(mainFont);
 
-    // Przyciski
+    // Buttons
     buttonAdd = new wxButton(panel, wxID_ANY, "Add", wxPoint(30, 20), wxSize(90, 35));
     buttonChange = new wxButton(panel, wxID_ANY, "Edit", wxPoint(130, 20), wxSize(90, 35));
     buttonDelete = new wxButton(panel, wxID_ANY, "Delete", wxPoint(230, 20), wxSize(90, 35));
     buttonClean = new wxButton(panel, wxID_ANY, "Clear", wxPoint(330, 20), wxSize(90, 35));
 
-    // Etykiety
-    wxStaticText* staticName = new wxStaticText(panel, wxID_ANY, "Name", wxPoint(45, 70));
-    wxStaticText* staticKind = new wxStaticText(panel, wxID_ANY, "Kind", wxPoint(130, 70));
-    wxStaticText* staticAllergy = new wxStaticText(panel, wxID_ANY, "Allergy", wxPoint(213, 70));
-    wxStaticText* staticFood = new wxStaticText(panel, wxID_ANY, "Food", wxPoint(327, 70));
-    wxStaticText* staticPrice = new wxStaticText(panel, wxID_ANY,
-        "Calculate food cost by days", wxPoint(390, 60), wxSize(160, 40));
+    // Labels
+    new wxStaticText(panel, wxID_ANY, "Name", wxPoint(45, 70));
+    new wxStaticText(panel, wxID_ANY, "Kind", wxPoint(130, 70));
+    new wxStaticText(panel, wxID_ANY, "Allergy", wxPoint(213, 70));
+    new wxStaticText(panel, wxID_ANY, "Food", wxPoint(327, 70));
+    new wxStaticText(panel, wxID_ANY, "Calculate food cost by days",
+        wxPoint(390, 60), wxSize(160, 40));
 
+    // Input controls
     chooseName = new wxTextCtrl(panel, wxID_ANY, "", wxPoint(35, 100), wxSize(60, -1));
 
-    // Tworzenie listy typów zwierząt
-    for (const auto& i : FoodMap) {
-        KindsUI.Add(i.first);
-    }
+    for (const auto& [kindName, _] : FoodMap)
+        kindsUI.Add(kindName);
 
-    chooseKind = new wxChoice(panel, wxID_ANY, wxPoint(105, 100), wxSize(90, -1), KindsUI);
-    chooseAllergy = new wxChoice(panel, wxID_ANY, wxPoint(200, 100), wxSize(100, -1), AllergiesUI);
-    chooseFood = new wxChoice(panel, wxID_ANY, wxPoint(310, 100), wxSize(100, -1), FoodUI);
+    chooseKind = new wxChoice(panel, wxID_ANY, wxPoint(105, 100), wxSize(90, -1), kindsUI);
+    chooseAllergy = new wxChoice(panel, wxID_ANY, wxPoint(200, 100), wxSize(100, -1), allergiesUI);
+    chooseFood = new wxChoice(panel, wxID_ANY, wxPoint(310, 100), wxSize(100, -1), foodUI);
 
     chooseDays = new wxSpinCtrl(panel, wxID_ANY, "1", wxPoint(420, 100), wxSize(70, -1), wxSP_WRAP);
     chooseDays->SetRange(1, 365);
 
-    // Bindowanie zdarzeń
     buttonAdd->Bind(wxEVT_BUTTON, &MainFrame::OnButtonAddClicked, this);
     buttonChange->Bind(wxEVT_BUTTON, &MainFrame::OnButtonChangeClicked, this);
     buttonDelete->Bind(wxEVT_BUTTON, &MainFrame::OnButtonDeleteClicked, this);
     buttonClean->Bind(wxEVT_BUTTON, &MainFrame::OnButtonCleanClicked, this);
-
     chooseKind->Bind(wxEVT_CHOICE, &MainFrame::OnKindChanged, this);
 
     listAnimals = new wxListBox(panel, wxID_ANY, wxPoint(37, 140), wxSize(700, 400));
 
-    // Wczytanie danych z pliku
     animals = AnimalRepository::LoadAnimalsFromFile("animals.txt");
-
-    for (const auto& a : animals) {
-        wxString line = a.kind + " " + a.name +
-            ".   Selected food: " + a.food +
-            (a.allergy != "None" ? ".   Allergy: " + a.allergy : "") +
-            ".   Food cost: " +
-            wxString::Format("%.2f UAH for %d days", a.price, a.days);
-
-        listAnimals->Append(line);
-    }
+    for (const auto& a : animals)
+        listAnimals->Append(FormatAnimalEntry(a));
 }
 
-// Dodawanie zwierzęcia
-void MainFrame::OnButtonAddClicked(wxCommandEvent& evt)
+wxString MainFrame::FormatAnimalEntry(const Animal& a) const
 {
-    name = chooseName->GetValue().Trim(true);
+    wxString entry = a.kind + " " + a.name +
+        ".   Selected food: " + a.food;
 
-    if (chooseKind->GetSelection() != -1)
-        kind = chooseKind->GetString(chooseKind->GetSelection());
+    if (a.allergy != "None" && !a.allergy.empty())
+        entry += ".   Allergy: " + a.allergy;
 
-    if (chooseAllergy->GetSelection() != -1)
-        allergy = chooseAllergy->GetString(chooseAllergy->GetSelection());
+    entry += wxString::Format(".   Food cost: %.2f UAH for %d days", a.price, a.days);
+    return entry;
+}
 
-    if (chooseFood->GetSelection() != -1)
-        food = chooseFood->GetString(chooseFood->GetSelection());
-
-    days = chooseDays->GetValue();
-
-    // Walidacja
-    if (name.IsEmpty()) {
-        wxMessageBox("Please enter animal name.", "Error", wxICON_WARNING);
-        return;
+bool MainFrame::ReadFormFields(wxString& outName, wxString& outKind,
+    wxString& outAllergy, wxString& outFood, int& outDays)
+{
+    outName = chooseName->GetValue().Trim(true);
+    if (outName.IsEmpty()) {
+        wxMessageBox("Please enter an animal name.", "Error", wxICON_WARNING);
+        return false;
     }
 
-    if (kind.IsEmpty()) {
-        wxMessageBox("Please select animal type.", "Error", wxICON_WARNING);
-        return;
+    if (chooseKind->GetSelection() == wxNOT_FOUND) {
+        wxMessageBox("Please select an animal kind.", "Error", wxICON_WARNING);
+        return false;
+    }
+    outKind = chooseKind->GetString(chooseKind->GetSelection());
+
+    if (chooseFood->GetSelection() == wxNOT_FOUND) {
+        wxMessageBox("Please select a food type.", "Error", wxICON_WARNING);
+        return false;
+    }
+    outFood = chooseFood->GetString(chooseFood->GetSelection());
+
+    // Allergy is optional; wxString() explicit cast required to avoid C2445
+    outAllergy = (chooseAllergy->GetSelection() != wxNOT_FOUND)
+        ? chooseAllergy->GetString(chooseAllergy->GetSelection())
+        : wxString("None");
+
+    if (outAllergy != "None" && outAllergy == outFood) {
+        wxMessageBox("Selected food causes an allergy!", "Warning", wxICON_WARNING);
+        return false;
     }
 
-    if (food.IsEmpty()) {
-        wxMessageBox("Please select food.", "Error", wxICON_WARNING);
-        return;
-    }
+    outDays = chooseDays->GetValue();
+    return true;
+}
 
-    if (!allergy.IsEmpty() && allergy != "None" && food == allergy) {
-        wxMessageBox("Selected food causes allergy!", "Warning", wxICON_WARNING);
+void MainFrame::OnButtonAddClicked(wxCommandEvent& /*evt*/)
+{
+    if (!ReadFormFields(name, kind, allergy, food, days))
         return;
-    }
 
-    // Obliczanie ceny
     price = FoodScaleMap.at(kind) * FoodPriceMap.at(food) * days;
 
-    // Dodanie do listy
-    listAnimals->Append(
-        kind + " " + name +
-        ".   Selected food: " + food +
-        ((!allergy.IsEmpty() && allergy != "None") ? wxString(".   Allergy: ") + allergy : wxString("")) +
-        ".   Food cost: " +
-        wxString::Format("%.2f UAH for %d days", price, days)
-    );
+    Animal a{ std::string(name.mb_str()),
+              std::string(kind.mb_str()),
+              std::string(allergy.mb_str()),
+              std::string(food.mb_str()),
+              days, price };
 
-    // Dodanie do wektora
-    animals.push_back(Animal{
-        std::string(name.mb_str()),
-        std::string(kind.mb_str()),
-        std::string(allergy.mb_str()),
-        std::string(food.mb_str()),
-        days,
-        price
-        });
-
+    animals.push_back(a);
+    listAnimals->Append(FormatAnimalEntry(a));
     AnimalRepository::SaveAnimalsToFile(animals, "animals.txt");
 }
 
-// Usuwanie
-void MainFrame::OnButtonDeleteClicked(wxCommandEvent& evt)
+void MainFrame::OnButtonDeleteClicked(wxCommandEvent& /*evt*/)
 {
-    int selection = listAnimals->GetSelection();
+    const int selection = listAnimals->GetSelection();
 
-    if (selection != wxNOT_FOUND) {
-        listAnimals->Delete(selection);
-        animals.erase(animals.begin() + selection);
-        AnimalRepository::SaveAnimalsToFile(animals, "animals.txt");
-    }
-    else {
+    if (selection == wxNOT_FOUND) {
         wxMessageBox("Please select an animal to delete.", "Warning", wxICON_INFORMATION);
+        return;
     }
+
+    listAnimals->Delete(selection);
+    animals.erase(animals.begin() + selection);
+    AnimalRepository::SaveAnimalsToFile(animals, "animals.txt");
 }
 
-// Edycja
-void MainFrame::OnButtonChangeClicked(wxCommandEvent& evt)
+void MainFrame::OnButtonChangeClicked(wxCommandEvent& /*evt*/)
 {
-    int selected = listAnimals->GetSelection();
+    const int selected = listAnimals->GetSelection();
 
     if (selected == wxNOT_FOUND) {
         wxMessageBox("Please select an animal to edit.", "Error", wxICON_WARNING);
         return;
     }
 
-    name = chooseName->GetValue().Trim(true);
-
-    if (name.IsEmpty()) {
-        wxMessageBox("Please enter animal name.", "Error", wxICON_WARNING);
+    if (!ReadFormFields(name, kind, allergy, food, days))
         return;
-    }
-
-    if (chooseKind->GetSelection() != -1)
-        kind = chooseKind->GetString(chooseKind->GetSelection());
-
-    if (chooseAllergy->GetSelection() != -1)
-        allergy = chooseAllergy->GetString(chooseAllergy->GetSelection());
-
-    if (chooseFood->GetSelection() != -1)
-        food = chooseFood->GetString(chooseFood->GetSelection());
-
-    days = chooseDays->GetValue();
-
-    if (kind.IsEmpty()) {
-        wxMessageBox("Please select animal kind.", "Error", wxICON_WARNING);
-        return;
-    }
-
-    if (food.IsEmpty()) {
-        wxMessageBox("Please select food.", "Error", wxICON_WARNING);
-        return;
-    }
-
-    if (!allergy.IsEmpty() && allergy != "None" && food == allergy) {
-        wxMessageBox("Selected food causes allergy!", "Warning", wxICON_WARNING);
-        return;
-    }
 
     price = FoodScaleMap.at(kind) * FoodPriceMap.at(food) * days;
 
-    animals[selected] = Animal{
-        std::string(name.mb_str()),
-        std::string(kind.mb_str()),
-        std::string(allergy.mb_str()),
-        std::string(food.mb_str()),
-        days,
-        price
-    };
+    animals[selected] = { std::string(name.mb_str()),
+                          std::string(kind.mb_str()),
+                          std::string(allergy.mb_str()),
+                          std::string(food.mb_str()),
+                          days, price };
 
-    listAnimals->SetString(selected,
-        kind + " " + name +
-        ".   Selected food: " + food +
-        ((!allergy.IsEmpty() && allergy != "None") ? wxString(".   Allergy: ") + allergy : wxString("")) +
-        ".   Food cost: " +
-        wxString::Format("%.2f UAH for %d days", price, days)
-    );
-
+    listAnimals->SetString(selected, FormatAnimalEntry(animals[selected]));
     AnimalRepository::SaveAnimalsToFile(animals, "animals.txt");
 }
 
-// Czyszczenie listy
-void MainFrame::OnButtonCleanClicked(wxCommandEvent& evt)
+void MainFrame::OnButtonCleanClicked(wxCommandEvent& /*evt*/)
 {
     listAnimals->Clear();
-
-    // Czyszczenie wektora
     animals.clear();
-
-    // Nadpisanie pliku pustym
-    std::ofstream file("animals.txt", std::ios::trunc);
-    file.close();
+    AnimalRepository::SaveAnimalsToFile(animals, "animals.txt");
 }
 
-// Zmiana typu zwierzęcia
-void MainFrame::OnKindChanged(wxCommandEvent& evt)
+void MainFrame::OnKindChanged(wxCommandEvent& /*evt*/)
 {
     chooseFood->Clear();
     chooseAllergy->Clear();
-
-    food = "";
-    allergy = "";
+    food.clear();
+    allergy.clear();
 
     kind = chooseKind->GetString(chooseKind->GetSelection());
 
-    auto foodIterator = FoodMap.find(kind);
-    for (const auto& product : foodIterator->second) {
+    for (const auto& product : FoodMap.at(kind))
         chooseFood->Append(product);
-    }
 
-    auto allergyIterator = AllergyMap.find(kind);
-    for (const auto& item : allergyIterator->second) {
+    for (const auto& item : AllergyMap.at(kind))
         chooseAllergy->Append(item);
-    }
 }

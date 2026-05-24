@@ -1,61 +1,64 @@
 #include "AnimalRepository.h"
+
 #include <fstream>
 #include <sstream>
 #include <wx/wx.h>
 
-// Funkcja zapisująca dane zwierząt do pliku
-void AnimalRepository::SaveAnimalsToFile(const std::vector<Animal>& animals, const std::string& fileName)
+namespace AnimalRepository
 {
-    std::ofstream file(fileName);  // Otwieramy plik do zapisu
 
-    if (!file.is_open()) {
-        wxMessageBox("Failed to open file for writing.", "Error", wxICON_ERROR); // Komunikat błędu
-        return;
-    }
+    // File format per line: name|kind|allergy|food|days|price
+    void SaveAnimalsToFile(const std::vector<Animal>& animals, const std::string& fileName)
+    {
+        std::ofstream file(fileName);
 
-    // Zapisujemy dane zwierząt do pliku
-    for (const auto& animal : animals) {
-        file << animal.name << "|"
-            << animal.kind << "|"
-            << animal.allergy << "|"
-            << animal.food << "|"
-            << animal.days << "|"
-            << animal.price << "\n";
-    }
+        if (!file.is_open()) {
+            wxMessageBox("Failed to open file for writing.", "Error", wxICON_ERROR);
+            return;
+        }
 
-    file.close();
-}
-
-// Funkcja wczytująca dane zwierząt z pliku
-std::vector<Animal> AnimalRepository::LoadAnimalsFromFile(const std::string& fileName)
-{
-    std::vector<Animal> result;
-    std::ifstream file(fileName);  // Otwieramy plik do odczytu
-
-    if (!file.is_open())
-        return result;  // Jeśli nie udało się otworzyć, zwracamy pusty wektor
-
-    std::string line;
-
-    while (getline(file, line)) {
-        std::stringstream ss(line);  // Dzielimy linię na części
-
-        Animal animal;
-        std::string daysStr, priceStr;
-
-        if (getline(ss, animal.name, '|') &&
-            getline(ss, animal.kind, '|') &&
-            getline(ss, animal.allergy, '|') &&
-            getline(ss, animal.food, '|') &&
-            getline(ss, daysStr, '|') &&
-            getline(ss, priceStr))
-        {
-            animal.days = stoi(daysStr);     // Konwersja dni na int
-            animal.price = stod(priceStr);   // Konwersja ceny na double
-            result.push_back(animal);        // Dodanie do listy wynikowej
+        for (const auto& animal : animals) {
+            file << animal.name << '|'
+                << animal.kind << '|'
+                << animal.allergy << '|'
+                << animal.food << '|'
+                << animal.days << '|'
+                << animal.price << '\n';
         }
     }
 
-    file.close();
-    return result;
-}
+    // Lines that cannot be parsed (wrong field count, bad number format) are skipped.
+    std::vector<Animal> LoadAnimalsFromFile(const std::string& fileName)
+    {
+        std::vector<Animal> result;
+        std::ifstream file(fileName);
+
+        if (!file.is_open())
+            return result;
+
+        std::string line;
+        while (std::getline(file, line)) {
+            if (line.empty())
+                continue;
+
+            std::istringstream ss(line);
+            Animal animal;
+            std::string daysStr, priceStr;
+
+            if (std::getline(ss, animal.name, '|') &&
+                std::getline(ss, animal.kind, '|') &&
+                std::getline(ss, animal.allergy, '|') &&
+                std::getline(ss, animal.food, '|') &&
+                std::getline(ss, daysStr, '|') &&
+                std::getline(ss, priceStr))
+            {
+                animal.days = std::stoi(daysStr);
+                animal.price = std::stod(priceStr);
+                result.push_back(std::move(animal));
+            }
+        }
+
+        return result;
+    }
+
+} // namespace AnimalRepository
